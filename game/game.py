@@ -2,6 +2,29 @@ import pygame
 from .car import Car
 
 
+
+
+TRACK_MAP = [
+    ['G', 'G', 'B', 'R', 'R', 'B', 'G', 'G'],
+    ['G', 'G', 'B', 'R', 'R', 'B', 'G', 'G'],
+    ['G', 'G', 'B', 'B', 'R', 'B', 'G', 'G'],
+    ['G', 'G', 'B', 'R', 'R', 'B', 'G', 'G'],
+    ['G', 'G', 'B', 'R', 'R', 'B', 'G', 'G'],
+    ['G', 'B', 'R', 'R', 'B', 'G', 'G', 'G'],
+    ['G', 'B', 'R', 'R', 'B', 'G', 'G', 'G'],
+    ['G', 'B', 'R', 'B', 'B', 'G', 'G', 'G'],
+    ['G', 'B', 'R', 'R', 'B', 'G', 'G', 'G'],
+    ['G', 'G', 'B', 'R', 'R', 'B', 'G', 'G'],
+    ['G', 'G', 'B', 'R', 'R', 'B', 'G', 'G'],
+    ['G', 'G', 'B', 'B', 'R', 'B', 'G', 'G'],
+    ['G', 'G', 'B', 'R', 'B', 'B', 'G', 'G'],
+    ['G', 'G', 'B', 'R', 'R', 'B', 'G', 'G'],
+    ['G', 'G', 'B', 'R', 'R', 'B', 'G', 'G']
+]
+
+
+
+
 class Game:
     def __init__(self):
         pygame.init()
@@ -29,4 +52,4 @@ class Game:
             pygame.display.flip()
             self.clock.tick(60)
 
-        pygame.quit()
+        pygame.quit()  
