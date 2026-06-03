@@ -18,7 +18,11 @@ class Car:
         self.y = self.start_y
 
         self.speed = 6
-        self.color = (0, 100, 255)
+        self.image = pygame.image.load("assets/Audi.png").convert_alpha()
+        self.image = pygame.transform.scale(
+            self.image,
+            (self.width, self.height)
+        )
 
         self.rect = pygame.Rect(
             self.x,
@@ -56,8 +60,15 @@ class Car:
         self.rect.y = self.y
 
     def draw(self, screen):
-        pygame.draw.rect(screen, self.color, self.rect)
+        screen.blit(self.image, self.rect)
 
+
+
+class Obstacles:
+    def __init__(self,x,y,image):
+        
+        self.image = image 
+        
 
 # ===== GAME =====
 class Game:
