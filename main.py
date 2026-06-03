@@ -37,7 +37,13 @@ class Car:
         if keys[pygame.K_d]:
             self.x += self.speed
 
-        self.x = max(0, min(self.x, WIDTH - self.width))
+        road_left = WIDTH // 2 - 280 // 2
+        road_right = road_left + 280
+        
+        self.x = max(
+            road_left,
+            min(self.x, road_right - self.width)
+        )
 
         self.rect.x = self.x
         self.rect.y = self.y
@@ -88,22 +94,22 @@ class Game:
     def create_obstacles(self):
         self.obstacles.clear()
 
-        # Less obstacles than before
-        for _ in range(15):
+        obstacle_count = 12
+        spacing = 350
+
+        for i in range (obstacle_count):
 
             x = random.randint(
-                self.road_x,
+                self.road_x ,
                 self.road_x + self.road_width - 40
             )
 
-            y = random.randint(
-                -10000,
-                -200
-            )
+            y = -(i * spacing) - 300
 
             self.obstacles.append(
-                pygame.Rect(x, y, 40, 40)
+                pygame.Rect(x,y, 40,40)
             )
+
 
     def restart(self):
         self.game_over = False
@@ -116,35 +122,34 @@ class Game:
 
     def update(self):
 
-        if self.game_over:
-            return
+     if self.game_over:
+         return
 
-        self.car.update()
+     self.car.update()
 
-        current_time = pygame.time.get_ticks()
+     current_time = pygame.time.get_ticks()
 
-        for obstacle in self.obstacles:
+     for obstacle in self.obstacles:
 
-            obstacle.y += self.obstacle_speed
+         obstacle.y += self.obstacle_speed
 
-            # Recycle obstacle
-            if obstacle.y > HEIGHT:
+         # Recycle obstacle
+         if obstacle.y > HEIGHT:
 
-                obstacle.y = random.randint(
-                    -1000,
-                    -100
-                )
+             highest_y = min(obs.y for obs in self.obstacles)
 
-                obstacle.x = random.randint(
-                    self.road_x,
-                    self.road_x + self.road_width - obstacle.width
-                )
+             obstacle.y = highest_y - 350
 
-            # No collision during first 2 seconds
-            if current_time - self.start_time > 2000:
+             obstacle.x = random.randint(
+                 self.road_x,
+                 self.road_x + self.road_width - obstacle.width
+             )
 
-                if self.car.rect.colliderect(obstacle):
-                    self.game_over = True
+         # No collision during first 2 seconds
+         if current_time - self.start_time > 2000:
+
+             if self.car.rect.colliderect(obstacle):
+                 self.game_over = True
 
     def draw(self):
 
