@@ -8,11 +8,11 @@ HEIGHT = 600
 # ===== CAR =====
 class Car:
     def __init__(self):
-        self.width = 40
-        self.height = 70
+        self.width = 60
+        self.height = 85
 
         self.start_x = WIDTH // 2 - self.width // 2
-        self.start_y = HEIGHT - 100
+        self.start_y = HEIGHT - 140
 
         self.x = self.start_x
         self.y = self.start_y
@@ -101,25 +101,26 @@ class Game:
         # Obstacles
         self.obstacles = []
         self.create_obstacles()
+        self.road_offset = 0
 
     def create_obstacles(self):
-        self.obstacles.clear()
+          self.obstacles.clear()
 
-        obstacle_count = 12
-        spacing = 350
+          obstacle_count = 12
+          spacing = 350
 
-        for i in range (obstacle_count):
+          for i in range(obstacle_count):
 
-            x = random.randint(
-                self.road_x ,
-                self.road_x + self.road_width - 40
-            )
+              x = random.randint(
+                  self.road_x,
+                  self.road_x + self.road_width - 60
+              )
 
-            y = -(i * spacing) - 300
+              y = -(i * spacing) - 300
 
-            self.obstacles.append(
-                pygame.Rect(x,y, 40,40)
-            )
+              self.obstacles.append(
+                  pygame.Rect(x, y, 60, 85)
+              )
 
 
     def restart(self):
@@ -132,6 +133,11 @@ class Game:
         self.create_obstacles()
 
     def update(self):
+     
+     self.road_offset += self.obstacle_speed
+
+     if self.road_offset >= 80:
+         self.road_offset = 0
 
      if self.game_over:
          return
@@ -180,14 +186,14 @@ class Game:
         )
 
         # Lane markings
-        for y in range(0, HEIGHT, 80):
+        for y in range(-80, HEIGHT, 80):
 
             pygame.draw.rect(
                 self.screen,
                 (255, 255, 255),
                 (
                     WIDTH // 2 - 5,
-                    y,
+                    y + self.road_offset,
                     10,
                     40
                 )
@@ -201,6 +207,20 @@ class Game:
                 (220, 50, 50),
                 obstacle
             )
+        pygame.draw.line(
+            self.screen,
+            (255,255,255),
+            (self.road_x, 0),
+            (self.road_x, HEIGHT ),
+            4
+        )
+        pygame.draw.line(
+            self.screen,
+            (255, 255, 255),
+            (self.road_x + self.road_width, 0),
+            (self.road_x + self.road_width, HEIGHT),
+            4
+        )
 
         # Car
         self.car.draw(self.screen)
@@ -221,6 +241,9 @@ class Game:
                 (WIDTH // 2 - text.get_width() // 2, 20)
             )
 
+
+
+        
       
         # Game Over
         if self.game_over:
