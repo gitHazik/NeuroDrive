@@ -17,7 +17,7 @@ class Car:
         self.x = self.start_x
         self.y = self.start_y
 
-        self.speed = 6
+        self.speed = 8
         self.image = pygame.image.load("assets/Audi.png").convert_alpha()
         self.image = pygame.transform.scale(
             self.image,
