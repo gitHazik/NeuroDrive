@@ -14,63 +14,96 @@ class Car:
         self.start_x = WIDTH // 2 - self.width // 2
         self.start_y = HEIGHT - 140
 
-        self.x = self.start_x
-        self.y = self.start_y
+        self.x = float(self.start_x)
+        self.y = float(self.start_y)
 
-        self.speed = 8
-        self.image = pygame.image.load("assets/Audi.png").convert_alpha()
+        self.speed = 0
+        self.max_speed = 8
+        self.acceleration = 0.4
+        self.friction = 0.2
+
+        self.steer_speed = 7
+
+        self.image = pygame.image.load(
+            "assets/Audi.png"
+        ).convert_alpha()
+
         self.image = pygame.transform.scale(
             self.image,
             (self.width, self.height)
         )
 
-        self.rect = pygame.Rect(
-            self.x,
-            self.y,
-            self.width,
-            self.height
+        self.rect = self.image.get_rect(
+            topleft=(self.x, self.y)
         )
 
     def update(self):
+
         keys = pygame.key.get_pressed()
 
-        # WASD controls
+        # Smooth steering
         if keys[pygame.K_a]:
-            self.x -= self.speed
+            self.x -= self.steer_speed
 
         if keys[pygame.K_d]:
-            self.x += self.speed
+            self.x += self.steer_speed
+
+        # Fake acceleration feel
+        if self.speed < self.max_speed:
+            self.speed += self.acceleration
 
         road_left = WIDTH // 2 - 280 // 2
         road_right = road_left + 280
-        
+
         self.x = max(
             road_left,
-            min(self.x, road_right - self.width)
+            min(
+                self.x,
+                road_right - self.width
+            )
         )
 
-        self.rect.x = self.x
-        self.rect.y = self.y
+        self.rect.x = int(self.x)
+        self.rect.y = int(self.y)
 
     def reset(self):
-        self.x = self.start_x
-        self.y = self.start_y
 
-        self.rect.x = self.x
-        self.rect.y = self.y
+        self.x = float(self.start_x)
+        self.y = float(self.start_y)
+
+        self.speed = 0
+
+        self.rect.x = int(self.x)
+        self.rect.y = int(self.y)
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
 
 
+class Obstacle:
+    def __init__(self, x, y, image):
 
-class Obstacles:
-    def __init__(self,x,y,image):
+        self.image = image
+
+        self.rect = pygame.Rect(
+            x,
+            y,
+            60,
+            85
+        )
+
+    def draw(self, screen):
+        screen.blit(
+            self.image,
+            self.rect
+        )
+
+
         
-        self.image = image 
         
 
-# ===== GAME =====
+# =======GAME========
+
 class Game:
     def __init__(self):
         pygame.init()
@@ -88,40 +121,77 @@ class Game:
         self.font = pygame.font.SysFont(None, 60)
         self.small_font = pygame.font.SysFont(None, 30)
 
-        # Road
         self.road_width = 280
         self.road_x = WIDTH // 2 - self.road_width // 2
 
-        # Obstacle speed
         self.obstacle_speed = 5
 
-        # 2-second protection timer
         self.start_time = pygame.time.get_ticks()
 
-        # Obstacles
-        self.obstacles = []
-        self.create_obstacles()
         self.road_offset = 0
 
+        self.obstacles = []
+        self.create_obstacles()
+
+        # Trees
+        self.trees = []
+
+        for i in range(20):
+
+            self.trees.append([
+                random.randint(20, self.road_x - 20),
+                random.randint(-HEIGHT, HEIGHT)
+            ])
+
+            self.trees.append([
+                random.randint(
+                    self.road_x + self.road_width + 20,
+                    WIDTH - 20
+                ),
+                random.randint(-HEIGHT, HEIGHT)
+            ])
+
+        self.obstacle_images = []
+
+        for i in range(1, 7):
+
+          img = pygame.image.load(
+              f"assets/ob_{i}.png"
+          ).convert_alpha()
+
+          img = pygame.transform.scale(
+              img,
+              (60, 85)
+          )
+
+        self.obstacle_images.append(img)
+
     def create_obstacles(self):
-          self.obstacles.clear()
 
-          obstacle_count = 12
-          spacing = 350
+     self.obstacles.clear()
 
-          for i in range(obstacle_count):
+     spacing = 350
 
-              x = random.randint(
-                  self.road_x,
-                  self.road_x + self.road_width - 60
-              )
+     for i in range(12):
 
-              y = -(i * spacing) - 300
+         x = random.randint(
+             self.road_x + 10,
+             self.road_x + self.road_width - 70
+         )
 
-              self.obstacles.append(
-                  pygame.Rect(x, y, 60, 85)
-              )
+         y = -(i * spacing) - 300
 
+         image = random.choice(
+             self.obstacle_images
+         )
+
+         self.obstacles.append(
+             Obstacle(
+                 x,
+                 y,
+                 image
+             )
+         )
 
     def restart(self):
         self.game_over = False
@@ -133,45 +203,62 @@ class Game:
         self.create_obstacles()
 
     def update(self):
-     
-     self.road_offset += self.obstacle_speed
 
-     if self.road_offset >= 80:
-         self.road_offset = 0
+        obstacle.rect.y += self.obstacle_speed
 
-     if self.game_over:
-         return
+        if self.road_offset >= 80:
+            self.road_offset = 0
 
-     self.car.update()
+        for tree in self.trees:
 
-     current_time = pygame.time.get_ticks()
+            tree[1] += self.obstacle_speed
 
-     for obstacle in self.obstacles:
+            if tree[1] > HEIGHT + 20:
+                tree[1] = -20
 
-         obstacle.y += self.obstacle_speed
+        if self.game_over:
+            return
 
-         # Recycle obstacle
-         if obstacle.y > HEIGHT:
+        self.car.update()
 
-             highest_y = min(obs.y for obs in self.obstacles)
+        current_time = pygame.time.get_ticks()
 
-             obstacle.y = highest_y - 350
+        for obstacle in self.obstacles:
 
-             obstacle.x = random.randint(
-                 self.road_x,
-                 self.road_x + self.road_width - obstacle.width
-             )
+            obstacle.rect.y += self.obstacle_speed
 
-         # No collision during first 2 seconds
-         if current_time - self.start_time > 2000:
+            if obstacle.rect.y > HEIGHT:
 
-             if self.car.rect.colliderect(obstacle):
-                 self.game_over = True
+                highest_y = min(
+                    obs.rect.y for obs in self.obstacles
+                )
+
+                obstacle.rect.y = highest_y - 350
+
+                obstacle.rect.x = random.randint(
+                    self.road_x + 10,
+                    self.road_x + self.road_width - 70
+                )
+
+            if current_time - self.start_time > 2000:
+
+                if self.car.rect.colliderect(obstacle):
+                    self.game_over = True
 
     def draw(self):
 
         # Grass
         self.screen.fill((40, 140, 40))
+
+        # Trees
+        for tree in self.trees:
+
+            pygame.draw.circle(
+                self.screen,
+                (20, 100, 20),
+                tree,
+                12
+            )
 
         # Road
         pygame.draw.rect(
@@ -185,7 +272,7 @@ class Game:
             )
         )
 
-        # Lane markings
+        # Center lane
         for y in range(-80, HEIGHT, 80):
 
             pygame.draw.rect(
@@ -199,21 +286,40 @@ class Game:
                 )
             )
 
-        # Obstacles
-        for obstacle in self.obstacles:
+        # Side lane markers
+        for y in range(-80, HEIGHT, 80):
 
             pygame.draw.rect(
                 self.screen,
-                (220, 50, 50),
-                obstacle
+                (255, 255, 0),
+                (
+                    self.road_x + 40,
+                    y + self.road_offset,
+                    6,
+                    30
+                )
             )
+
+            pygame.draw.rect(
+                self.screen,
+                (255, 255, 0),
+                (
+                    self.road_x + self.road_width - 46,
+                    y + self.road_offset,
+                    6,
+                    30
+                )
+            )
+
+        # Road borders
         pygame.draw.line(
             self.screen,
-            (255,255,255),
+            (255, 255, 255),
             (self.road_x, 0),
-            (self.road_x, HEIGHT ),
+            (self.road_x, HEIGHT),
             4
         )
+
         pygame.draw.line(
             self.screen,
             (255, 255, 255),
@@ -222,10 +328,17 @@ class Game:
             4
         )
 
-        # Car
+        # Obstacles
+        for obstacle in self.obstacles:
+
+            pygame.draw.rect(
+                self.screen,
+                (220, 50, 50),
+                obstacle
+            )
+
         self.car.draw(self.screen)
 
-        # Spawn protection message
         current_time = pygame.time.get_ticks()
 
         if current_time - self.start_time < 2000:
@@ -241,11 +354,6 @@ class Game:
                 (WIDTH // 2 - text.get_width() // 2, 20)
             )
 
-
-
-        
-      
-        # Game Over
         if self.game_over:
 
             game_over_text = self.font.render(
