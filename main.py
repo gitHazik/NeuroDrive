@@ -38,7 +38,6 @@ class Car:
         )
 
     def update(self):
-
         keys = pygame.key.get_pressed()
 
         # Smooth steering
@@ -67,7 +66,6 @@ class Car:
         self.rect.y = int(self.y)
 
     def reset(self):
-
         self.x = float(self.start_x)
         self.y = float(self.start_y)
 
@@ -82,7 +80,6 @@ class Car:
 
 class Obstacle:
     def __init__(self, x, y, image):
-
         self.image = image
 
         self.rect = pygame.Rect(
@@ -98,9 +95,6 @@ class Obstacle:
             self.rect
         )
 
-
-        
-        
 
 # =======GAME========
 
@@ -130,14 +124,9 @@ class Game:
 
         self.road_offset = 0
 
-        self.obstacles = []
-        self.create_obstacles()
-
         # Trees
         self.trees = []
-
         for i in range(20):
-
             self.trees.append([
                 random.randint(20, self.road_x - 20),
                 random.randint(-HEIGHT, HEIGHT)
@@ -151,47 +140,50 @@ class Game:
                 random.randint(-HEIGHT, HEIGHT)
             ])
 
+        # FIX 2: Load images BEFORE creating obstacles
         self.obstacle_images = []
 
         for i in range(1, 7):
+            img = pygame.image.load(
+                f"assets/ob_{i}.png"
+            ).convert_alpha()
 
-          img = pygame.image.load(
-              f"assets/ob_{i}.png"
-          ).convert_alpha()
+            img = pygame.transform.scale(
+                img,
+                (60, 85)
+            )
 
-          img = pygame.transform.scale(
-              img,
-              (60, 85)
-          )
+            # FIX 1: Indented correctly inside the loop
+            self.obstacle_images.append(img)
 
-        self.obstacle_images.append(img)
+        # Create obstacles now that images are loaded
+        self.obstacles = []
+        self.create_obstacles()
 
     def create_obstacles(self):
+        self.obstacles.clear()
 
-     self.obstacles.clear()
+        spacing = 350
 
-     spacing = 350
+        for i in range(12):
+            x = random.randint(
+                self.road_x + 10,
+                self.road_x + self.road_width - 70
+            )
 
-     for i in range(12):
+            y = -(i * spacing) - 300
 
-         x = random.randint(
-             self.road_x + 10,
-             self.road_x + self.road_width - 70
-         )
+            image = random.choice(
+                self.obstacle_images
+            )
 
-         y = -(i * spacing) - 300
-
-         image = random.choice(
-             self.obstacle_images
-         )
-
-         self.obstacles.append(
-             Obstacle(
-                 x,
-                 y,
-                 image
-             )
-         )
+            self.obstacles.append(
+                Obstacle(
+                    x,
+                    y,
+                    image
+                )
+            )
 
     def restart(self):
         self.game_over = False
@@ -204,13 +196,14 @@ class Game:
 
     def update(self):
 
-        obstacle.rect.y += self.obstacle_speed
+        self.road_offset += self.obstacle_speed
 
         if self.road_offset >= 80:
-            self.road_offset = 0
+              self.road_offset = 0
+
+
 
         for tree in self.trees:
-
             tree[1] += self.obstacle_speed
 
             if tree[1] > HEIGHT + 20:
@@ -224,11 +217,9 @@ class Game:
         current_time = pygame.time.get_ticks()
 
         for obstacle in self.obstacles:
-
             obstacle.rect.y += self.obstacle_speed
 
             if obstacle.rect.y > HEIGHT:
-
                 highest_y = min(
                     obs.rect.y for obs in self.obstacles
                 )
@@ -239,20 +230,23 @@ class Game:
                     self.road_x + 10,
                     self.road_x + self.road_width - 70
                 )
+                
+                # BONUS FIX: Randomize sprite when recycled
+                obstacle.image = random.choice(
+                    self.obstacle_images
+                )
 
             if current_time - self.start_time > 2000:
-
-                if self.car.rect.colliderect(obstacle):
+                # FIX 4: Add .rect to obstacle for collision check
+                if self.car.rect.colliderect(obstacle.rect):
                     self.game_over = True
 
     def draw(self):
-
         # Grass
         self.screen.fill((40, 140, 40))
 
         # Trees
         for tree in self.trees:
-
             pygame.draw.circle(
                 self.screen,
                 (20, 100, 20),
@@ -274,7 +268,6 @@ class Game:
 
         # Center lane
         for y in range(-80, HEIGHT, 80):
-
             pygame.draw.rect(
                 self.screen,
                 (255, 255, 255),
@@ -288,7 +281,6 @@ class Game:
 
         # Side lane markers
         for y in range(-80, HEIGHT, 80):
-
             pygame.draw.rect(
                 self.screen,
                 (255, 255, 0),
@@ -330,19 +322,14 @@ class Game:
 
         # Obstacles
         for obstacle in self.obstacles:
-
-            pygame.draw.rect(
-                self.screen,
-                (220, 50, 50),
-                obstacle
-            )
+            # FIX 5: Properly draw the obstacle image instead of a red rectangle
+            obstacle.draw(self.screen)
 
         self.car.draw(self.screen)
 
         current_time = pygame.time.get_ticks()
 
         if current_time - self.start_time < 2000:
-
             text = self.small_font.render(
                 "START PROTECTION",
                 True,
@@ -355,7 +342,6 @@ class Game:
             )
 
         if self.game_over:
-
             game_over_text = self.font.render(
                 "GAME OVER",
                 True,
@@ -385,25 +371,18 @@ class Game:
             )
 
     def run(self):
-
         while self.running:
-
             for event in pygame.event.get():
-
                 if event.type == pygame.QUIT:
                     self.running = False
 
                 if event.type == pygame.KEYDOWN:
-
                     if event.key == pygame.K_r:
                         self.restart()
 
             self.update()
-
             self.draw()
-
             pygame.display.flip()
-
             self.clock.tick(60)
 
         pygame.quit()
