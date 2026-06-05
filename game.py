@@ -69,8 +69,14 @@ class Obstacle:
 
 
 # ======= GAME ENVIRONMENT ========
-class NeuroDriveEnv:
-    def __init__(self):
+class NeuroDriveEnv(gym.Env):
+    def __init__(self, render_mode="human"):
+        super(NeuroDriveEnv, self).__init__()
+        self.action_space = spaces.Discrete(3)
+        self.observation_space = spaces.Box(low=0.0, high=1.0, shape=(3,), dtype=np.float32)
+        # --------------------------------------------------------------------------------
+
+        self.render_mode = render_mode
         pygame.init()
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("NeuroDrive - RL Environment")
