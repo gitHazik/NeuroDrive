@@ -34,5 +34,49 @@ class Car:
             topleft = (self.x, self.y)
         )
 
-    def update():
+    def update(self):
+        keys = pygame.key.get_pressed()
+
+
+        if keys[pygame.K_d]:
+            self.x += self.steer_speed
+        if keys[pygame.K_a]:
+            self.x -= self.steer_speed
+
+
+        road_left = WIDTH // 2 - 280 // 2 
+        road_right  = road_left + 280
+
+
+        self.x = max(
+            road_left,
+            min(
+                self.x,
+                road_right - self.width
+            )
+        )
+
+
+        self.rect.x = int(self.x)
+        self.rect.y = int(self.y)
+
+    def reset(self):
+        self.x = float(self.start_x)
+        self.y = float(self.start_y)
         
+
+        self.rect.x = float(self.x)
+        self.rect.y = float(self.y)
+
+    def draw(self, screen):
+        screen.blit(self.car_image, self.rect)
+
+
+
+
+
+
+
+class Obstacles:
+    
+
