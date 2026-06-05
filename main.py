@@ -1,40 +1,44 @@
 import pygame
-from game import NeuroDriveEnv 
+from stable_baselines3 import PPO
+from game import NeuroDriveEnv
 
 def main():
-    # Initialize our RL Environment
-    env = NeuroDriveEnv()
+    print("Loading Environment (Visual Mode)...")
+    # render_mode="human" means we WANT the window to open so we can watch
+    env = NeuroDriveEnv(render_mode="human")
+
+    print("Loading Trained AI Brain...")
+    try:
+        # This will automatically look for neurodrive_brain.zip!
+        model = PPO.load("neurodrive_brain")
+    except FileNotFoundError:
+        print("Error: 'neurodrive_brain.zip' not found. Make sure you zipped the folder!")
+        return
+
+    obs, _ = env.reset()
     clock = pygame.time.Clock()
     running = True
 
+    print("Watching the AI drive! (Close the window to stop)")
+
     while running:
+        # Keep the window from freezing
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
 
-        # In the future, this is where you ask your AI model: action = model.predict(observation)
-        keys = pygame.key.get_pressed()
-        action = 0  # Default: Drive Straight
+        # 1. Show the AI the road (obs)
+        # deterministic=True means the AI uses its best learned reflexes, no random guessing
+        action, _states = model.predict(obs, deterministic=True)
 
-        if keys[pygame.K_a]:
-            action = 1 
-        elif keys[pygame.K_d]:
-            action = 2  
+        # 2. The AI takes the steering wheel
+        obs, reward, terminated, truncated, info = env.step(action)
 
-        # 3. Advance the environment by one step
-        game_over, score = env.step(action)
+        # 3. If it crashes, restart the track instantly
+        if terminated or truncated:
+            obs, _ = env.reset()
 
-        # 4. Draw the environment
-        env.render()
-
-        # 5. Handle crashes
-        if game_over:
-            # If playing manually, wait for the 'R' key to restart
-            # if keys[pygame.K_r]:
-            #     env.reset()
-            
-             env.reset() 
-
+        # Lock the framerate so it looks perfectly smooth (120 FPS)
         clock.tick(120)
 
     pygame.quit()
