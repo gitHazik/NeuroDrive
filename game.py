@@ -1,4 +1,6 @@
 import pygame 
+import random
+
 
 
 
@@ -79,4 +81,62 @@ class Car:
 
 class Obstacles:
     
+    def __init__(self,x,y):
+        
+        self.width = 60
+        self.height = 60
 
+
+        self.rect = pygame.Rect(
+            x,
+            y,
+            self.width,
+            self.height
+        )
+    def draw(self,screen):
+        tire_centers = [
+            (self.rect.x + 20 , self.rect.y + 20)
+            (self.rect.x + 40 , self.rect.y + 20)
+            (self.rect.x + 30 , self.rect.y + 20)
+        ]
+        
+        for cx , cy in tire_centers:
+            pygame.draw.circle(screen, (30,30,30), (cx,cy), 16)
+
+            pygame.draw.circle(screen, (70,70,70), (cx,cy), 16, 2)
+            pygame.draw.circle(screen, (10,10,10), (cx,cy), 7)
+    
+
+class Game:
+    def __init__(self):
+        pygame.init()
+
+
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        pygame.display.set_caption("NeuroDrive")
+
+        self.clock = pygame.time.Clock()
+
+        self.car  = Car()
+
+        self.running = True
+        self.game_over = False 
+
+        self.font = pygame.font.SysFont(None, 60)
+        self.small_font = pygame.font.SysFont(None, 30)
+
+        self.score = 0
+        self.road.x = WIDTH // 2 - self.road_width // 2
+
+        self.obstacle_speed = 4
+
+        self.start_time = pygame.time.get_ticks()
+        self.road_offset = 0
+
+        #Trees
+
+        self.trees = []
+        for i in range(20):
+            self.trees.append([
+                rando
+            ])
