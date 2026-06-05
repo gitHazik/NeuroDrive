@@ -104,8 +104,38 @@ class NeuroDriveEnv(gym.Env):
             x = random.randint(self.road_x + 10, self.road_x + self.road_width - 70)
             y = -(i * spacing) - 300
             self.obstacles.append(Obstacle(x, y))
+    def get_observation(self):
+        """Calculates what the AI sees right now."""
+        # Find the obstacle closest to the car (but ahead of it)
+        closest_obs = None
+        min_dist = float('inf')
+        
+        for obs in self.obstacles:
+            if obs.rect.y < self.car.y: # Only look at obstacles ahead
+                dist = self.car.y - obs.rect.y
+                if dist < min_dist:
+                    min_dist = dist
+                    closest_obs = obs
+                    
+        # If no obstacle is ahead (rare), just look at the first one
+        if closest_obs is None:
+            if len(self.obstacles) > 0:
+                closest_obs = self.obstacles[0]
+            else:
+                # Fallback if list is empty
+                return np.zeros(3, dtype=np.float32)
 
-    def reset(self):
+        # Normalize the numbers between 0 and 1 so the Neural Network learns easily
+        obs = np.array([
+            self.car.x / WIDTH,
+            closest_obs.rect.x / WIDTH,
+            (closest_obs.rect.y + HEIGHT) / (HEIGHT * 2) # Handle negative Y values
+        ], dtype=np.float32)
+        
+        return obs
+
+    def reset(self, seed=None, options=None):
+        super().reset(seed=seed)
         self.game_over = False
         self.car.reset()
         self.start_time = pygame.time.get_ticks()
@@ -114,19 +144,11 @@ class NeuroDriveEnv(gym.Env):
         self.road_offset = 0
         self.obstacles = []
         self.create_obstacles()
+        return self.get_observation(), {}
 
     def step(self, action):
-        """Advances the game by one single frame based on the action."""
-        if self.game_over:
-            return self.game_over, self.score
-
+        """The AI's main loop."""
         current_time = pygame.time.get_ticks()
-
-        # Update Score
-        if current_time - self.start_time > 2000:
-            if current_time - self.last_score_time >= 1000:
-                self.score += 1
-                self.last_score_time = current_time
 
         # Update environment
         self.road_offset += self.obstacle_speed
@@ -138,25 +160,39 @@ class NeuroDriveEnv(gym.Env):
             if tree[1] > HEIGHT + 20:
                 tree[1] = -20
 
-        # Pass the action to the car
+        # Pass AI action to car
         self.car.update(action)
+
+        # Base Reward for surviving this frame
+        reward = 0.1  
 
         # Check Collisions
         car_hitbox = self.car.rect.inflate(-30, -10)
         for obstacle in self.obstacles:
             obstacle.rect.y += self.obstacle_speed
 
+            # Recycle obstacles and give a big reward!
             if obstacle.rect.y > HEIGHT:
                 highest_y = min(obs.rect.y for obs in self.obstacles)
                 obstacle.rect.y = highest_y - 350
                 obstacle.rect.x = random.randint(self.road_x + 10, self.road_x + self.road_width - 70)
+                reward += 1.0 # Bonus reward for passing an obstacle!
 
             if current_time - self.start_time > 2000:
                 obs_hitbox = obstacle.rect.inflate(-10, -10)
                 if car_hitbox.colliderect(obs_hitbox):
                     self.game_over = True
+                    reward = -10.0 # Massive penalty for crashing
 
-        return self.game_over, self.score
+        # Get the new observation after moving
+        observation = self.get_observation()
+
+        # Draw the frame if we are watching
+        if self.render_mode == "human":
+            self.render()
+
+        # ====== GYMNASIUM REQUIRES THESE 5 EXACT VALUES ======
+        return observation, reward, self.game_over, False, {}
 
     def render(self):
         """Draws the current frame to the screen."""

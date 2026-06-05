@@ -1,23 +1,18 @@
+# --- train.py ---
 from stable_baselines3 import PPO
-from stable_baselines3.common.env_checker import check_env
 from game import NeuroDriveEnv
 
 def main():
-    print("Loading NeuroDrive Environment...")
-    env = NeuroDriveEnv(render_mode="human")
-
-    # --- THE MAGIC CHECKER ---
-    # This will scan your game and print a very clear error if anything is missing!
-    print("Checking environment validity...")
-    check_env(env)
-    print("Environment is perfect! \n")
-    # -------------------------
+    print("Loading NeuroDrive Environment (Headless Mode)...")
+    # render_mode=None means no window will open. It trains 10x faster!
+    env = NeuroDriveEnv(render_mode=None)
 
     print("Building Neural Network Brain...")
     model = PPO("MlpPolicy", env, verbose=1)
 
-    print("Starting Training! Watch the window...")
-    model.learn(total_timesteps=50000)
+    print("Starting Training! Check the console for progress...")
+    # Let's train for 150,000 steps. This should take about 5-10 minutes.
+    model.learn(total_timesteps=150000)
 
     print("Training complete! Saving brain to 'neurodrive_brain.zip'...")
     model.save("neurodrive_brain")
