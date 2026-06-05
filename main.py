@@ -17,13 +17,10 @@ class Car:
         self.x = float(self.start_x)
         self.y = float(self.start_y)
 
-        self.speed = 0
-        self.max_speed = 8
-        self.acceleration = 0.4
-        self.friction = 0.2
+        # Steering speed
+        self.steer_speed = 5
 
-        self.steer_speed = 7
-
+        # Keep the car image
         self.image = pygame.image.load(
             "assets/Audi.png"
         ).convert_alpha()
@@ -36,21 +33,17 @@ class Car:
         self.rect = self.image.get_rect(
             topleft=(self.x, self.y)
         )
-
+    
     def update(self):
         keys = pygame.key.get_pressed()
 
-        # Smooth steering
-        if keys[pygame.K_a]:
-            self.x -= self.steer_speed
-
+        # Steering ONLY (Acceleration removed)
         if keys[pygame.K_d]:
             self.x += self.steer_speed
-
-        # Fake acceleration feel
-        if self.speed < self.max_speed:
-            self.speed += self.acceleration
-
+        if keys[pygame.K_a]:
+            self.x -= self.steer_speed
+        
+        # Keep the car on the road
         road_left = WIDTH // 2 - 280 // 2
         road_right = road_left + 280
 
@@ -69,8 +62,6 @@ class Car:
         self.x = float(self.start_x)
         self.y = float(self.start_y)
 
-        self.speed = 0
-
         self.rect.x = int(self.x)
         self.rect.y = int(self.y)
 
@@ -78,26 +69,39 @@ class Car:
         screen.blit(self.image, self.rect)
 
 
+# ===== OBSTACLE (CUSTOM DRAWN TIRES) =====
 class Obstacle:
-    def __init__(self, x, y, image):
-        self.image = image
-
+    def __init__(self, x, y):
+        self.width = 60
+        self.height = 60
+        
         self.rect = pygame.Rect(
             x,
             y,
-            60,
-            85
+            self.width,
+            self.height
         )
 
     def draw(self, screen):
-        screen.blit(
-            self.image,
-            self.rect
-        )
+        # Coordinates for a cluster of 3 tires
+        tire_centers = [
+            (self.rect.x + 20, self.rect.y + 20),
+            (self.rect.x + 40, self.rect.y + 20),
+            (self.rect.x + 30, self.rect.y + 40)
+        ]
+
+        for cx, cy in tire_centers:
+            # 1. Outer black/dark grey tire edge
+            pygame.draw.circle(screen, (30, 30, 30), (cx, cy), 16)
+            
+            # 2. Inner dark grey rim highlight
+            pygame.draw.circle(screen, (70, 70, 70), (cx, cy), 16, 2)
+            
+            # 3. Deep black center hole
+            pygame.draw.circle(screen, (10, 10, 10), (cx, cy), 7)
 
 
 # =======GAME========
-
 class Game:
     def __init__(self):
         pygame.init()
@@ -118,10 +122,10 @@ class Game:
         self.road_width = 280
         self.road_x = WIDTH // 2 - self.road_width // 2
 
-        self.obstacle_speed = 5
+        # Set a constant, fun speed for the world to move automatically
+        self.obstacle_speed = 8
 
         self.start_time = pygame.time.get_ticks()
-
         self.road_offset = 0
 
         # Trees
@@ -140,23 +144,7 @@ class Game:
                 random.randint(-HEIGHT, HEIGHT)
             ])
 
-        # FIX 2: Load images BEFORE creating obstacles
-        self.obstacle_images = []
-
-        for i in range(1, 7):
-            img = pygame.image.load(
-                f"assets/ob_{i}.png"
-            ).convert_alpha()
-
-            img = pygame.transform.scale(
-                img,
-                (60, 85)
-            )
-
-            # FIX 1: Indented correctly inside the loop
-            self.obstacle_images.append(img)
-
-        # Create obstacles now that images are loaded
+        # Create obstacles (Images removed, using custom drawn class)
         self.obstacles = []
         self.create_obstacles()
 
@@ -173,35 +161,26 @@ class Game:
 
             y = -(i * spacing) - 300
 
-            image = random.choice(
-                self.obstacle_images
-            )
-
             self.obstacles.append(
-                Obstacle(
-                    x,
-                    y,
-                    image
-                )
+                Obstacle(x, y)
             )
 
     def restart(self):
         self.game_over = False
-
         self.car.reset()
-
         self.start_time = pygame.time.get_ticks()
-
         self.create_obstacles()
 
     def update(self):
+        # Stop everything immediately if the game is over
+        if self.game_over:
+            return
 
+        # Update environment (Automatic scrolling)
         self.road_offset += self.obstacle_speed
 
         if self.road_offset >= 80:
-              self.road_offset = 0
-
-
+            self.road_offset = 0
 
         for tree in self.trees:
             tree[1] += self.obstacle_speed
@@ -209,16 +188,18 @@ class Game:
             if tree[1] > HEIGHT + 20:
                 tree[1] = -20
 
-        if self.game_over:
-            return
-
+        # Update player car (Steering)
         self.car.update()
 
         current_time = pygame.time.get_ticks()
 
+        # Shrink the car hitbox slightly for fair collisions
+        car_hitbox = self.car.rect.inflate(-30, -10)
+
         for obstacle in self.obstacles:
             obstacle.rect.y += self.obstacle_speed
 
+            # Recycle obstacle to top
             if obstacle.rect.y > HEIGHT:
                 highest_y = min(
                     obs.rect.y for obs in self.obstacles
@@ -230,15 +211,13 @@ class Game:
                     self.road_x + 10,
                     self.road_x + self.road_width - 70
                 )
-                
-                # BONUS FIX: Randomize sprite when recycled
-                obstacle.image = random.choice(
-                    self.obstacle_images
-                )
 
+            # Check collisions after start protection
             if current_time - self.start_time > 2000:
-                # FIX 4: Add .rect to obstacle for collision check
-                if self.car.rect.colliderect(obstacle.rect):
+                # Shrink the tire stack hitbox slightly for extra fairness
+                obs_hitbox = obstacle.rect.inflate(-10, -10)
+                
+                if car_hitbox.colliderect(obs_hitbox):
                     self.game_over = True
 
     def draw(self):
@@ -320,15 +299,16 @@ class Game:
             4
         )
 
-        # Obstacles
+        # Draw Obstacles (Tire barriers)
         for obstacle in self.obstacles:
-            # FIX 5: Properly draw the obstacle image instead of a red rectangle
             obstacle.draw(self.screen)
 
+        # Draw Car
         self.car.draw(self.screen)
 
         current_time = pygame.time.get_ticks()
 
+        # Start protection text
         if current_time - self.start_time < 2000:
             text = self.small_font.render(
                 "START PROTECTION",
@@ -341,6 +321,7 @@ class Game:
                 (WIDTH // 2 - text.get_width() // 2, 20)
             )
 
+        # Game Over Screen
         if self.game_over:
             game_over_text = self.font.render(
                 "GAME OVER",
