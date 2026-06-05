@@ -17,8 +17,8 @@ class Car:
         self.x = float(self.start_x)
         self.y = float(self.start_y)
 
-        # Steering speed
-        self.steer_speed = 5
+        # Steering speed (Halved for 120 FPS smoothness)
+        self.steer_speed = 3.5
 
         # Keep the car image
         self.image = pygame.image.load(
@@ -118,12 +118,17 @@ class Game:
 
         self.font = pygame.font.SysFont(None, 60)
         self.small_font = pygame.font.SysFont(None, 30)
+        
+        # --- NEW: Score Variables ---
+        self.score = 0
+        self.last_score_time = pygame.time.get_ticks()
+        # ----------------------------
 
         self.road_width = 280
         self.road_x = WIDTH // 2 - self.road_width // 2
 
-        # Set a constant, fun speed for the world to move automatically
-        self.obstacle_speed = 8
+        # Speed for the world (Halved for 120 FPS smoothness)
+        self.obstacle_speed = 4
 
         self.start_time = pygame.time.get_ticks()
         self.road_offset = 0
@@ -144,7 +149,7 @@ class Game:
                 random.randint(-HEIGHT, HEIGHT)
             ])
 
-        # Create obstacles (Images removed, using custom drawn class)
+        # Create obstacles
         self.obstacles = []
         self.create_obstacles()
 
@@ -169,12 +174,27 @@ class Game:
         self.game_over = False
         self.car.reset()
         self.start_time = pygame.time.get_ticks()
+        
+        # --- NEW: Reset Score ---
+        self.score = 0
+        self.last_score_time = self.start_time
+        # ------------------------
+        
         self.create_obstacles()
 
     def update(self):
         # Stop everything immediately if the game is over
         if self.game_over:
             return
+
+        current_time = pygame.time.get_ticks()
+
+        # --- NEW: Update Score (+1 every 1000 milliseconds) ---
+        if current_time - self.start_time > 2000: # Wait until start protection ends
+            if current_time - self.last_score_time >= 1000:
+                self.score += 1
+                self.last_score_time = current_time
+        # ------------------------------------------------------
 
         # Update environment (Automatic scrolling)
         self.road_offset += self.obstacle_speed
@@ -190,8 +210,6 @@ class Game:
 
         # Update player car (Steering)
         self.car.update()
-
-        current_time = pygame.time.get_ticks()
 
         # Shrink the car hitbox slightly for fair collisions
         car_hitbox = self.car.rect.inflate(-30, -10)
@@ -308,6 +326,18 @@ class Game:
 
         current_time = pygame.time.get_ticks()
 
+        # --- NEW: Draw Score ---
+        score_text = self.font.render(
+            f"Score: {self.score}", 
+            True, 
+            (255, 255, 255)
+        )
+        # Add a little black shadow for readability against the green grass
+        shadow_text = self.font.render(f"Score: {self.score}", True, (0, 0, 0))
+        self.screen.blit(shadow_text, (22, 22)) 
+        self.screen.blit(score_text, (20, 20))
+        # -----------------------
+
         # Start protection text
         if current_time - self.start_time < 2000:
             text = self.small_font.render(
@@ -364,7 +394,9 @@ class Game:
             self.update()
             self.draw()
             pygame.display.flip()
-            self.clock.tick(60)
+            
+            # Locked to 120 FPS for incredibly smooth gameplay
+            self.clock.tick(120) 
 
         pygame.quit()
 
