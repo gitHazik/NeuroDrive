@@ -20,8 +20,17 @@ class Car:
         self.y = float(self.start_y)
         self.steer_speed = 3.5
 
-        self.image = pygame.image.load("assets/Audi.png").convert_alpha()
-        self.image = pygame.transform.scale(self.image, (self.width, self.height))
+        # --- THE BULLETPROOF FALLBACK ---
+        try:
+            self.image = pygame.image.load("assets/Audi.png").convert_alpha()
+            self.image = pygame.transform.scale(self.image, (self.width, self.height))
+        except FileNotFoundError:
+            # If Colab/Drive can't find the image, just use a red box!
+            print("Warning: Audi.png not found. Using a red box instead.")
+            self.image = pygame.Surface((self.width, self.height))
+            self.image.fill((200, 50, 50)) # Red color
+        # --------------------------------
+
         self.rect = self.image.get_rect(topleft=(self.x, self.y))
     
     def update(self, action):
@@ -149,6 +158,10 @@ class NeuroDriveEnv(gym.Env):
     def step(self, action):
         """The AI's main loop."""
         current_time = pygame.time.get_ticks()
+        if current_time - self.start_time > 2000: # Wait until start protection ends
+            if current_time - self.last_score_time >= 1000:
+                self.score += 1
+                self.last_score_time = current_time
 
         # Update environment
         self.road_offset += self.obstacle_speed
@@ -197,6 +210,10 @@ class NeuroDriveEnv(gym.Env):
     def render(self):
         """Draws the current frame to the screen."""
         self.screen.fill((40, 140, 40))
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
 
         for tree in self.trees:
             pygame.draw.circle(self.screen, (20, 100, 20), tree, 12)
