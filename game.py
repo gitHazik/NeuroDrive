@@ -248,4 +248,4 @@ class NeuroDriveEnv(gym.Env):
             game_over_text = self.font.render("CRASHED", True, (255, 50, 50))
             self.screen.blit(game_over_text, (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 2 - 40))
 
-        pygame.display.flip()
+        pygame.display.flip()ew
