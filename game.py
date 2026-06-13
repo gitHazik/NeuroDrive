@@ -97,10 +97,7 @@ class NeuroDriveEnv(gym.Env):
         self.road_x = WIDTH // 2 - self.road_width // 2
         self.obstacle_speed = 4
 
-        road_center = self.road_x + (self.road_width / 2)
-        distance_from_center = abs(self.car.x + (self.car.width / 2) - road_center)
-        max_deviation = self.road_width / 2
-        center_penalty = -(distance_from_center / max_deviation) * 0.05
+
 
         
 
@@ -182,15 +179,17 @@ class NeuroDriveEnv(gym.Env):
 
         # Pass AI action to car
         self.car.update(action)
+        road_center = self.road_x + (self.road_width / 2)
+        distance_from_center = abs(self.car.x + (self.car.width / 2) - road_center)
+        max_deviation = self.road_width / 2
+        center_penalty = -(distance_from_center / max_deviation) * 0.05
 
         # Base Reward for surviving this frame
-        reward = 0.1  
+        reward = 0.1  + center_penalty
 
 
         if self.car.x <= self.road_x or self.car.x + self.car.width >= self.road_x + self.road_width:
               reward -= 0.1
-
-        reward += center_penalty
 
         # Check Collisions
         car_hitbox = self.car.rect.inflate(-30, -10)
