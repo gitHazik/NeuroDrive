@@ -1,46 +1,54 @@
 import pygame
 from stable_baselines3 import PPO
+from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 from game import NeuroDriveEnv
 
 def main():
-    print("Loading Environment (Visual Mode)...")
-    # render_mode="human" means we WANT the window to open so we can watch
-    env = NeuroDriveEnv(render_mode="human")
+    # 1. Initialize the environment with render_mode="human"
+    # We wrap it in DummyVecEnv so the model can read it correctly
+    env = DummyVecEnv([lambda: NeuroDriveEnv(render_mode="human")])
+    
+    # 2. Load the normalization stats (CRITICAL to match training)
+    try:
+        env = VecNormalize.load("vec_normalize.pkl", env)
+        env.training = False 
+        env.norm_reward = False
+    except FileNotFoundError:
+        print("Warning: 'vec_normalize.pkl' not found. AI may behave erratically.")
+
+    # 3. Extract the underlying NeuroDriveEnv object so we can trigger render()
+    game_env = env.envs[0]
 
     print("Loading Trained AI Brain...")
-    try:
-        # This will automatically look for neurodrive_brain.zip!
-        model = PPO.load("neurodrive_brain")
-    except FileNotFoundError:
-        print("Error: 'neurodrive_brain.zip' not found. Make sure you zipped the folder!")
-        return
+    model = PPO.load("neurodrive_brain")
 
-    obs, _ = env.reset()
+    obs = env.reset()
     clock = pygame.time.Clock()
     running = True
 
     print("Watching the AI drive! (Close the window to stop)")
 
     while running:
-        # Keep the window from freezing
+        # Check for window exit
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
 
-        # 1. Show the AI the road (obs)
-        # deterministic=True means the AI uses its best learned reflexes, no random guessing
-        action, _states = model.predict(obs, deterministic=True)
+        # 4. AI Action Prediction
+        action, _ = model.predict(obs, deterministic=True)
 
-        # 2. The AI takes the steering wheel
-        obs, reward, terminated, truncated, info = env.step(action)
+        # 5. Step the environment
+        obs, _, dones, _ = env.step(action)
 
-        # 3. If it crashes, restart the track instantly
-        if terminated or truncated:
-            obs, _ = env.reset()
+        # 6. FORCE RENDER: This bypasses the wrapper to draw the car and obstacles
+        game_env.render()
 
-        # Lock the framerate so it looks perfectly smooth (120 FPS)
-        clock.tick(120)
+        if dones:
+            obs = env.reset()
 
+        clock.tick(60)
+
+    env.close()
     pygame.quit()
 
 if __name__ == "__main__":

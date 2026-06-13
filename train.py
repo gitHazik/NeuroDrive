@@ -1,14 +1,13 @@
 from stable_baselines3 import PPO
-from stable_baselines3.common.vec_env import dummy_vec_env , VecNormalize
+from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 from game import NeuroDriveEnv
-
 
 
 
 def main ():
 
     print("Loading NeuroDrive Environment")
-    env = dummy_vec_env([lambda: NeuroDriveEnv(render_mode=None)])
+    env = DummyVecEnv([lambda: NeuroDriveEnv(render_mode=None)])
     env = VecNormalize(env, norm_obs=True, norm_reward=False, clip_obs=10.)
 
     print("Building Neural Network Brain with optimized architecture...")
